@@ -1,0 +1,137 @@
+# Estructura del proyecto mailResolve
+
+Documentación de módulos, interacciones y decisiones de diseño.
+
+## Visión general
+
+mailResolve automatiza el triage de Gmail mediante reglas deterministas con fallback a Groq LLM. La arquitectura es multi-tenant desde el inicio (todas las tablas llevan `user_id`), aunque v1 es uso personal con una sola cuenta.
+
+```
+Gmail watch → Pub/Sub → FastAPI webhook → Celery worker → Clasificación → Acciones Gmail
+```
+
+## Estructura de carpetas
+
+```
+mailResolve/
+├── src/
+│   ├── api/           # FastAPI REST API
+│   ├── cli/           # Typer CLI
+│   ├── core/          # Config y seguridad
+│   ├── gmail/         # Cliente Gmail API
+│   ├── classifier/    # Motor de reglas + Groq
+│   ├── worker/        # Celery tasks
+│   ├── models/        # SQLAlchemy ORM
+│   └── schemas/       # Pydantic DTOs
+├── alembic/           # Migraciones DB
+├── tests/
+├── docker-compose.yml # Postgres + Redis local
+└── pyproject.toml
+```
+
+## Módulos y responsabilidades
+
+### `src/core/`
+
+| Archivo | Propósito |
+|---------|-----------|
+| `config.py` | Settings vía `pydantic-settings`; lee `.env` |
+| `security.py` | Cifrado Fernet de `refresh_token` OAuth |
+
+**Decisión**: `SECRET_KEY` debe ser una clave Fernet válida (32 bytes base64). Se genera una vez en setup.
+
+### `src/models/`
+
+| Modelo | Tabla | Descripción |
+|--------|-------|-------------|
+| `User` | `users` | Cuenta Gmail vinculada, tokens cifrados, `history_id`, `watch_expires_at` |
+| `Rule` | `rules` | Reglas de clasificación con `conditions` y `actions` JSONB |
+| `ClassificationLog` | `classification_logs` | Auditoría de cada decisión (rule/llm) |
+| `SnoozedMessage` | `snoozed_messages` | Emails en snooze con `wake_at` |
+| `ProcessedMessage` | `processed_messages` | Deduplicación por `(user_id, gmail_message_id)` |
+
+**Decisión**: Todos los modelos usan UUID como PK. `processed_messages` usa clave compuesta para dedup eficiente.
+
+`database.py` expone `engine`, `SessionLocal` y `get_db()` para inyección en FastAPI.
+
+### `src/schemas/`
+
+DTOs Pydantic para request/response de la API. Separados de los modelos ORM para no acoplar la capa HTTP a la DB.
+
+### `src/api/`
+
+| Archivo | Endpoint(s) | Estado |
+|---------|-------------|--------|
+| `main.py` | App FastAPI + router central | ✅ Scaffold |
+| `deps.py` | `get_database`, `verify_api_key` | ✅ Scaffold |
+| `routes/health.py` | `GET /health` | ✅ Funcional |
+| `routes/auth.py` | `GET /auth/login`, `/auth/callback` | Stub (fase OAuth) |
+| `routes/webhooks.py` | `POST /webhooks/gmail` | Stub (fase 1) |
+| `routes/rules.py` | CRUD `/rules` | Stub (requiere user context) |
+| `routes/logs.py` | `GET /logs` | ✅ Scaffold |
+
+**Autenticación API v1**: header `X-API-Key` comparado con `API_KEY` en env.
+
+### `src/cli/`
+
+CLI Typer con entry point `mailresolve`. Comandos definidos como stubs; se implementan en fases posteriores.
+
+### `src/worker/`
+
+| Archivo | Propósito |
+|---------|-----------|
+| `celery_app.py` | Config Celery + Redis; beat schedule para `renew_watch` y `wake_snoozed` |
+| `tasks.py` | Tasks stub: `process_history`, `renew_watch`, `wake_snoozed` |
+
+### `src/gmail/` y `src/classifier/`
+
+Stubs preparados para fases 1-2. Cada archivo documenta su responsabilidad futura.
+
+## Infraestructura local
+
+### Docker Compose
+
+- **postgres**: puerto 5432, user/pass/db `mailresolve`
+- **redis**: puerto 6379
+
+### Alembic
+
+Migración inicial `001_initial_schema.py` crea las 5 tablas del modelo de datos.
+
+```bash
+alembic upgrade head
+```
+
+### Despliegue
+
+| Archivo | Plataforma |
+|---------|------------|
+| `Procfile` | Heroku (web, worker, beat) |
+| `railway.toml` | Railway alternativo |
+
+## Flujo de datos (futuro)
+
+1. **OAuth** (`cli auth login`) → guarda `User` con token cifrado → activa `watch`
+2. **Push** (`POST /webhooks/gmail`) → decodifica Pub/Sub → encola `process_history`
+3. **Worker** → `history.list` incremental → por cada mensaje nuevo → `classifier.pipeline`
+4. **Pipeline** → reglas (conf ≥ 0.9) o Groq (conf ≥ 0.75) → `gmail.actions` → `classification_log`
+5. **Beat** → renueva `watch` cada 6 días; despierta snoozed cada minuto
+
+## Variables de entorno
+
+Ver `.env.example`. Mínimo para desarrollo local:
+
+- `DATABASE_URL` → apunta a Docker Compose Postgres
+- `REDIS_URL` → apunta a Docker Compose Redis
+- `SECRET_KEY` → clave Fernet
+- `API_KEY` → auth CLI/API
+
+## Fases de implementación
+
+| Fase | Contenido | Estado |
+|------|-----------|--------|
+| 0 | Scaffold (este commit) | ✅ |
+| 0b | OAuth + Gmail client básico | Pendiente |
+| 1 | Pub/Sub webhook + Celery sync | Pendiente |
+| 2 | Clasificación reglas + Groq | Pendiente |
+| 3 | Snooze + deploy Heroku | Pendiente |
