@@ -66,9 +66,9 @@ DTOs Pydantic para request/response de la API. Separados de los modelos ORM para
 | `deps.py` | `get_database`, `verify_api_key` | ✅ Scaffold |
 | `routes/health.py` | `GET /health` | ✅ Funcional |
 | `routes/auth.py` | `GET /auth/login`, `/auth/callback` | ✅ OAuth + persist User |
-| `routes/webhooks.py` | `POST /webhooks/gmail` | Stub (fase 1) |
+| `routes/webhooks.py` | `POST /webhooks/gmail` → encola `process_history` |
 | `routes/rules.py` | CRUD `/rules` | Stub (requiere user context) |
-| `routes/logs.py` | `GET /logs` | ✅ Scaffold |
+| `routes/sync.py` | `POST /sync` → encola `process_history` manual |
 
 **Autenticación API v1**: header `X-API-Key` comparado con `API_KEY` en env.
 
@@ -81,7 +81,7 @@ CLI Typer con entry point `mailresolve`. Comandos definidos como stubs; se imple
 | Archivo | Propósito |
 |---------|-----------|
 | `celery_app.py` | Config Celery + Redis; beat schedule para `renew_watch` y `wake_snoozed` |
-| `tasks.py` | Tasks stub: `process_history`, `renew_watch`, `wake_snoozed` |
+| `tasks.py` | `process_history`, `renew_watch` (Beat), `wake_snoozed` stub |
 
 ### `src/gmail/`
 
@@ -89,7 +89,7 @@ CLI Typer con entry point `mailresolve`. Comandos definidos como stubs; se imple
 |---------|-----------|
 | `oauth.py` | Factory `Flow` OAuth, validación de `state`, redirect URI desde settings |
 | `client.py` | Wrapper `google-api-python-client` (fase 3) |
-| `sync.py` | `history.list` incremental (fase 1) |
+| `sync.py` | `history.list` incremental, dedup con `processed_messages` |
 | `watch.py` | `users.watch()` / renovación (fase 1) |
 | `actions.py` | modify labels, archive, mark read (fase 2) |
 

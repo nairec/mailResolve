@@ -10,6 +10,7 @@ from src.core.config import settings
 from src.core.security import encrypt_token
 from src.gmail.oauth import create_oauth_flow, pop_oauth_flow, store_oauth_flow
 from src.models import User
+from src.gmail.watch import start_watch, persist_watch_state
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +108,26 @@ def auth_callback(
 
     user = _upsert_user(db, email, credentials.refresh_token)
 
+    try:
+        watch_result = start_watch(user)
+        persist_watch_state(db, user, watch_result)
+    except ValueError as exc:
+        logger.exception("Failed to start watch")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("Failed to start watch")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to start watch",
+        ) from exc
+
     return {
         "status": "connected",
         "email": user.email,
+        "history_id": str(watch_result.history_id),
+        "watch_expires_at": watch_result.expires_at.isoformat(),
         "message": f"Gmail account {user.email} linked successfully",
     }

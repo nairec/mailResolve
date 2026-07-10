@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, FastAPI
 
-from src.api.deps import verify_api_key
-from src.api.routes import auth, health, logs, rules, webhooks
+from src.api.routes import auth, health, logs, rules, sync, webhooks
 
 app = FastAPI(
     title="mailResolve",
@@ -15,16 +14,6 @@ api_router.include_router(auth.router)
 api_router.include_router(webhooks.router)
 api_router.include_router(rules.router)
 api_router.include_router(logs.router)
-
-
-sync_router = APIRouter(prefix="/sync", tags=["sync"], dependencies=[Depends(verify_api_key)])
-
-
-@sync_router.post("")
-def force_sync() -> dict[str, str]:
-    return {"status": "not_implemented", "message": "Manual sync pending phase 1"}
-
-
-api_router.include_router(sync_router)
+api_router.include_router(sync.router)
 
 app.include_router(api_router)
