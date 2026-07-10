@@ -65,7 +65,7 @@ DTOs Pydantic para request/response de la API. Separados de los modelos ORM para
 | `main.py` | App FastAPI + router central | ✅ Scaffold |
 | `deps.py` | `get_database`, `verify_api_key` | ✅ Scaffold |
 | `routes/health.py` | `GET /health` | ✅ Funcional |
-| `routes/auth.py` | `GET /auth/login`, `/auth/callback` | Stub (fase OAuth) |
+| `routes/auth.py` | `GET /auth/login`, `/auth/callback` | ✅ OAuth + persist User |
 | `routes/webhooks.py` | `POST /webhooks/gmail` | Stub (fase 1) |
 | `routes/rules.py` | CRUD `/rules` | Stub (requiere user context) |
 | `routes/logs.py` | `GET /logs` | ✅ Scaffold |
@@ -83,9 +83,15 @@ CLI Typer con entry point `mailresolve`. Comandos definidos como stubs; se imple
 | `celery_app.py` | Config Celery + Redis; beat schedule para `renew_watch` y `wake_snoozed` |
 | `tasks.py` | Tasks stub: `process_history`, `renew_watch`, `wake_snoozed` |
 
-### `src/gmail/` y `src/classifier/`
+### `src/gmail/`
 
-Stubs preparados para fases 1-2. Cada archivo documenta su responsabilidad futura.
+| Archivo | Propósito |
+|---------|-----------|
+| `oauth.py` | Factory `Flow` OAuth, validación de `state`, redirect URI desde settings |
+| `client.py` | Wrapper `google-api-python-client` (fase 3) |
+| `sync.py` | `history.list` incremental (fase 1) |
+| `watch.py` | `users.watch()` / renovación (fase 1) |
+| `actions.py` | modify labels, archive, mark read (fase 2) |
 
 ## Infraestructura local
 

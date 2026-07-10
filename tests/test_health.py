@@ -13,7 +13,8 @@ def test_health_endpoint() -> None:
     assert "environment" in data
 
 
-def test_auth_login_not_implemented() -> None:
-    response = client.get("/auth/login")
-    assert response.status_code == 200
-    assert response.json()["status"] == "not_implemented"
+def test_auth_login_redirects_or_requires_config() -> None:
+    response = client.get("/auth/login", follow_redirects=False)
+    assert response.status_code in (307, 503)
+    if response.status_code == 307:
+        assert "accounts.google.com" in response.headers["location"]
