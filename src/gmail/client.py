@@ -60,8 +60,14 @@ def list_messages(
     )
 
 
-def get_message(user: User, message_id: str, format: str = "metadata") -> dict[str, Any]:
+def get_message(
+    user: User,
+    message_id: str,
+    format: str = "metadata",
+    metadata_headers: list[str] | None = None,
+) -> dict[str, Any]:
     service = get_gmail_service(user)
+    headers = metadata_headers or ["From", "Subject", "Date"]
     return (
         service.users()
         .messages()
@@ -69,7 +75,7 @@ def get_message(user: User, message_id: str, format: str = "metadata") -> dict[s
             userId="me",
             id=message_id,
             format=format,
-            metadataHeaders=["From", "Subject", "Date"],
+            metadataHeaders=headers,
         )
         .execute()
     )

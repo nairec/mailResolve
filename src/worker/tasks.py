@@ -3,6 +3,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from src.classifier.pipeline import classify_and_act
 from src.gmail.sync import sync_user
 from src.gmail.watch import persist_watch_state, renew_watch as renew_user_watch
 from src.models import User
@@ -28,6 +29,18 @@ def process_history(user_id: str, history_id: int | None = None) -> dict[str, An
 
         result = sync_user(db, user, notification_history_id=history_id)
 
+        classifications: list[dict[str, Any]] = []
+        for message_id in result.new_message_ids:
+            classification = classify_and_act(db, user, message_id)
+            classifications.append(
+                {
+                    "message_id": classification.message_id,
+                    "source": classification.source,
+                    "category": classification.category,
+                    "confidence": classification.confidence,
+                }
+            )
+
         if result.new_message_ids:
             logger.info(
                 "Synced %d new message(s) for %s: %s",
@@ -44,6 +57,7 @@ def process_history(user_id: str, history_id: int | None = None) -> dict[str, An
             "new_count": len(result.new_message_ids),
             "message_ids": result.new_message_ids,
             "latest_history_id": result.latest_history_id,
+            "classifications": classifications,
         }
     except ValueError as exc:
         logger.warning("process_history failed for user=%s: %s", user_id, exc)

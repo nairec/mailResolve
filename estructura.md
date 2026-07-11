@@ -67,14 +67,19 @@ DTOs Pydantic para request/response de la API. Separados de los modelos ORM para
 | `routes/health.py` | `GET /health` | ✅ Funcional |
 | `routes/auth.py` | `GET /auth/login`, `/auth/callback` | ✅ OAuth + persist User |
 | `routes/webhooks.py` | `POST /webhooks/gmail` → encola `process_history` |
-| `routes/rules.py` | CRUD `/rules` | Stub (requiere user context) |
+| `routes/rules.py` | CRUD `/rules` + `POST /rules/test` | ✅ Funcional |
 | `routes/sync.py` | `POST /sync` → encola `process_history` manual |
 
 **Autenticación API v1**: header `X-API-Key` comparado con `API_KEY` en env.
 
 ### `src/cli/`
 
-CLI Typer con entry point `mailresolve`. Comandos definidos como stubs; se implementan en fases posteriores.
+| Archivo | Propósito |
+|---------|-----------|
+| `main.py` | Entry point Typer; comandos auth, sync, watch, logs, rules |
+| `rules_prompt.py` | Wizard interactivo para crear reglas paso a paso |
+
+CLI Typer con entry point `mailresolve`. Comandos implementados: `auth login/status`, `sync [--classify | --classify-in-process]`, `watch`, `logs --last N`, `rules list/add/delete/test`. `rules add` acepta `--file` (YAML) o modo interactivo (`--interactive` / sin `--file`).
 
 ### `src/worker/`
 
@@ -88,10 +93,21 @@ CLI Typer con entry point `mailresolve`. Comandos definidos como stubs; se imple
 | Archivo | Propósito |
 |---------|-----------|
 | `oauth.py` | Factory `Flow` OAuth, validación de `state`, redirect URI desde settings |
-| `client.py` | Wrapper `google-api-python-client` (fase 3) |
+| `client.py` | Wrapper Gmail API |
 | `sync.py` | `history.list` incremental, dedup con `processed_messages` |
-| `watch.py` | `users.watch()` / renovación (fase 1) |
-| `actions.py` | modify labels, archive, mark read (fase 2) |
+| `watch.py` | `users.watch()` / renovación |
+| `actions.py` | `apply_actions`, archive, mark read, `ensure_label` |
+
+### `src/classifier/`
+
+| Archivo | Propósito |
+|---------|-----------|
+| `features.py` | `EmailFeatures` + `extract_features()` |
+| `rules_engine.py` | Evalúa reglas JSON por prioridad, devuelve `RuleMatch` |
+| `rule_validation.py` | Valida `conditions`/`actions` al crear o editar reglas |
+| `seed_rules.py` | Reglas por defecto; seed idempotente en OAuth callback |
+| `groq_classifier.py` | Fallback Groq con JSON schema + umbral 0.75 |
+| `pipeline.py` | Orquestador rules → Groq → actions → `classification_logs` |
 
 ## Infraestructura local
 

@@ -22,6 +22,14 @@ class RuleCreate(BaseModel):
     enabled: bool = True
 
 
+class RuleUpdate(BaseModel):
+    name: str | None = None
+    priority: int | None = None
+    conditions: dict | None = None
+    actions: dict | None = None
+    enabled: bool | None = None
+
+
 class RuleRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -36,6 +44,17 @@ class RuleRead(BaseModel):
 
 class RuleTestRequest(BaseModel):
     message_id: str
+
+
+class RuleTestResponse(BaseModel):
+    message_id: str
+    matched: bool
+    rule_id: uuid.UUID | None = None
+    rule_name: str | None = None
+    category: str | None = None
+    confidence: float | None = None
+    actions: dict | None = None
+    reasoning: str | None = None
 
 
 class ClassificationLogRead(BaseModel):

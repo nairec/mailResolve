@@ -9,6 +9,7 @@ from src.api.deps import get_database
 from src.core.config import settings
 from src.core.security import encrypt_token
 from src.gmail.oauth import create_oauth_flow, pop_oauth_flow, store_oauth_flow
+from src.classifier.seed_rules import seed_default_rules
 from src.models import User
 from src.gmail.watch import start_watch, persist_watch_state
 
@@ -67,7 +68,7 @@ def auth_callback(
     code: str = Query(...),
     state: str = Query(...),
     db: Session = Depends(get_database),
-) -> dict[str, str]:
+) -> dict[str, str | int]:
     """Exchange OAuth code for tokens and persist encrypted refresh token."""
     _require_google_credentials()
 
@@ -107,6 +108,7 @@ def auth_callback(
         ) from exc
 
     user = _upsert_user(db, email, credentials.refresh_token)
+    rules_seeded = seed_default_rules(db, user)
 
     try:
         watch_result = start_watch(user)
@@ -129,5 +131,6 @@ def auth_callback(
         "email": user.email,
         "history_id": str(watch_result.history_id),
         "watch_expires_at": watch_result.expires_at.isoformat(),
+        "rules_seeded": rules_seeded,
         "message": f"Gmail account {user.email} linked successfully",
     }
