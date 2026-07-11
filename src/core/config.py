@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +27,15 @@ class Settings(BaseSettings):
     secret_key: str = ""
     api_key: str = ""
     environment: str = "development"
+
+    @model_validator(mode="after")
+    def validate_production_database(self) -> "Settings":
+        if self.environment == "production" and "localhost" in self.database_url:
+            raise ValueError(
+                "DATABASE_URL is not configured. Add Heroku Postgres: "
+                "heroku addons:create heroku-postgresql:essential-0"
+            )
+        return self
 
     @property
     def is_production(self) -> bool:
