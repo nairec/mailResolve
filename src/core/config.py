@@ -1,3 +1,5 @@
+import ssl
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -48,6 +50,21 @@ class Settings(BaseSettings):
         if url.startswith("postgres://"):
             return url.replace("postgres://", "postgresql://", 1)
         return url
+
+    @property
+    def celery_redis_url(self) -> str:
+        """Redis URL for Celery; Heroku rediss:// requires ssl_cert_reqs."""
+        url = self.redis_url
+        if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
+            separator = "&" if "?" in url else "?"
+            return f"{url}{separator}ssl_cert_reqs=CERT_NONE"
+        return url
+
+    @property
+    def celery_redis_use_ssl(self) -> dict | None:
+        if self.redis_url.startswith("rediss://"):
+            return {"ssl_cert_reqs": ssl.CERT_NONE}
+        return None
 
 
 settings = Settings()

@@ -26,3 +26,21 @@ def test_production_rejects_localhost_database() -> None:
             database_url="postgresql://mailresolve:mailresolve@localhost:5432/mailresolve",
             secret_key="test",
         )
+
+
+def test_celery_redis_url_adds_ssl_cert_reqs_for_rediss() -> None:
+    settings = Settings(
+        redis_url="rediss://:secret@host.example.com:6379",
+        secret_key="test",
+    )
+    assert "ssl_cert_reqs=CERT_NONE" in settings.celery_redis_url
+    assert settings.celery_redis_use_ssl is not None
+
+
+def test_celery_redis_url_unchanged_for_local_redis() -> None:
+    settings = Settings(
+        redis_url="redis://localhost:6379/0",
+        secret_key="test",
+    )
+    assert settings.celery_redis_url == settings.redis_url
+    assert settings.celery_redis_use_ssl is None

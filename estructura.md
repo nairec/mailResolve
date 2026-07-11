@@ -135,7 +135,7 @@ alembic upgrade head
 
 **Decisión**: Heroku usa **solo uv** (`pyproject.toml` + `uv.lock` + `.python-version`). No commitear `requirements.txt` a la vez que `uv.lock`.
 
-**Decisión**: Heroku Postgres expone `DATABASE_URL` como `postgres://`; `settings.sqlalchemy_database_url` la normaliza a `postgresql://` para SQLAlchemy.
+**Decisión**: Heroku Postgres expone `DATABASE_URL` como `postgres://`; `settings.sqlalchemy_database_url` la normaliza a `postgresql://` para SQLAlchemy. Heroku Redis usa `rediss://`; `settings.celery_redis_url` añade `ssl_cert_reqs=CERT_NONE` para Celery.
 
 Tras el deploy: escalar `web=1 worker=1 beat=1`, OAuth en `/auth/login`, Pub/Sub push a `/webhooks/gmail`.
 
