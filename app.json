@@ -1,0 +1,21 @@
+{
+  "name": "mailResolve",
+  "description": "Automated Gmail triage with rules and Groq LLM fallback",
+  "buildpacks": [{ "url": "heroku/python" }],
+  "addons": ["heroku-postgresql:essential-0", "heroku-redis:mini"],
+  "formation": {
+    "web": { "quantity": 1, "size": "eco" },
+    "worker": { "quantity": 1, "size": "eco" },
+    "beat": { "quantity": 1, "size": "eco" }
+  },
+  "env": {
+    "ENVIRONMENT": { "value": "production" },
+    "GOOGLE_CLIENT_ID": { "required": true },
+    "GOOGLE_CLIENT_SECRET": { "required": true },
+    "GOOGLE_OAUTH_REDIRECT_URI": { "required": true },
+    "GOOGLE_PUBSUB_TOPIC": { "required": true },
+    "GROQ_API_KEY": { "required": true },
+    "SECRET_KEY": { "required": true },
+    "API_KEY": { "required": true }
+  }
+}

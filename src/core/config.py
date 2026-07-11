@@ -31,5 +31,13 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment == "production"
 
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        """Normalize DATABASE_URL for SQLAlchemy (Heroku uses postgres://)."""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql://", 1)
+        return url
+
 
 settings = Settings()

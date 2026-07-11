@@ -124,11 +124,19 @@ Migración inicial `001_initial_schema.py` crea las 5 tablas del modelo de datos
 alembic upgrade head
 ```
 
-### Despliegue
+### Despliegue (Heroku)
 
-| Archivo | Plataforma |
-|---------|------------|
-| `Procfile` | Heroku (web, worker, beat) |
+| Archivo | Propósito |
+|---------|-----------|
+| `Procfile` | `release` (Alembic), `web`, `worker`, `beat` |
+| `runtime.txt` | Versión de Python (3.13) |
+| `requirements.txt` | Dependencias pip (`uv export --no-emit-project`) |
+| `app.json` | Plantilla Heroku: add-ons Postgres/Redis y formation |
+
+**Decisión**: Heroku Postgres expone `DATABASE_URL` como `postgres://`; `settings.sqlalchemy_database_url` la normaliza a `postgresql://` para SQLAlchemy.
+
+Tras el deploy: escalar `web=1 worker=1 beat=1`, OAuth en `/auth/login`, Pub/Sub push a `/webhooks/gmail`.
+
 | `railway.toml` | Railway alternativo |
 
 ## Flujo de datos (futuro)
@@ -152,8 +160,6 @@ Ver `.env.example`. Mínimo para desarrollo local:
 
 | Fase | Contenido | Estado |
 |------|-----------|--------|
-| 0 | Scaffold (este commit) | ✅ |
-| 0b | OAuth + Gmail client básico | Pendiente |
-| 1 | Pub/Sub webhook + Celery sync | Pendiente |
-| 2 | Clasificación reglas + Groq | Pendiente |
-| 3 | Snooze + deploy Heroku | Pendiente |
+| 0–2 | Scaffold, OAuth, sync, clasificación, CLI, reglas | ✅ |
+| 3 | Snooze, backfill pending, resync history | Pendiente |
+| 3b | Deploy Heroku (artefactos listos) | ✅ |
