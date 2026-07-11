@@ -10,6 +10,7 @@ build/
 .venv/
 venv/
 .env
+requirements.txt
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/

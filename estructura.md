@@ -129,9 +129,11 @@ alembic upgrade head
 | Archivo | Propósito |
 |---------|-----------|
 | `Procfile` | `release` (Alembic), `web`, `worker`, `beat` |
-| `runtime.txt` | Versión de Python (3.13) |
-| `requirements.txt` | Dependencias pip (`uv export --no-emit-project`) |
+| `.python-version` | Versión de Python para Heroku/uv (3.13.0) |
+| `uv.lock` | Lockfile de dependencias (Heroku: `uv sync --locked`) |
 | `app.json` | Plantilla Heroku: add-ons Postgres/Redis y formation |
+
+**Decisión**: Heroku usa **solo uv** (`pyproject.toml` + `uv.lock` + `.python-version`). No commitear `requirements.txt` a la vez que `uv.lock`.
 
 **Decisión**: Heroku Postgres expone `DATABASE_URL` como `postgres://`; `settings.sqlalchemy_database_url` la normaliza a `postgresql://` para SQLAlchemy.
 
